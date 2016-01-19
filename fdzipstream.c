@@ -434,7 +434,7 @@ zs_init ( int fd, ZIPstream *zs )
 ZIPstream *
 zs_init_custom_writer ( ssize_t (*writer)(void* userdata, const void *buf, size_t count), void* userdata, ZIPstream *zs )
 {
-  if( writer == NULL || ! zs_init( -1, zs ) )
+  if( writer == NULL || ! (zs = zs_init( -1, zs ) ) )
     {
       return NULL;
     }
