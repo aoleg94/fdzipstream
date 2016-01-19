@@ -399,6 +399,7 @@ zs_init ( int fd, ZIPstream *zs )
   memset (zs, 0, sizeof (ZIPstream));
 
   zs->fd = fd;
+  zs->writer = NULL;
 
   /* Register the included ZS_STORE and ZS_DEFLATE compression methods */
   if ( ! zs_registermethod ( zs, ZS_STORE,
@@ -419,6 +420,28 @@ zs_init ( int fd, ZIPstream *zs )
 
   return zs;
 }  /* End of zs_init() */
+
+
+/***************************************************************************
+ * zs_init_custom_writer:
+ *
+ * Initialize and return an ZIPstream struct. If a pointer to an
+ * existing ZIPstream is supplied it will be re-initizlied, otherwise
+ * memory will be allocated.
+ *
+ * @return a pointer to a ZIPstream struct on success or NULL on error.
+ ***************************************************************************/
+ZIPstream *
+zs_init_custom_writer ( ssize_t (*writer)(void* userdata, const void *buf, size_t count), void* userdata, ZIPstream *zs )
+{
+  if( writer == NULL || ! zs_init( -1, zs ) )
+    {
+      return NULL;
+    }
+  zs->userdata = userdata;
+  zs->writer = writer;
+  return zs;
+}  /* End of zs_init_custom_writer() */
 
 
 /***************************************************************************
@@ -982,7 +1005,14 @@ zs_writedata ( ZIPstream *zstream, uint8_t *writeBuffer, int64_t writeBufferSize
       writeLength = ( (writeBufferSize - written) > ZS_WRITE_SIZE ) ?
         ZS_WRITE_SIZE : (writeBufferSize - written);
 
-      lwritestatus = write (zstream->fd, writeBuffer+written, writeLength);
+      if(zstream->writer)
+        {
+          lwritestatus = zstream->writer (zstream->userdata, writeBuffer+written, writeLength);
+        }
+      else
+        {
+          lwritestatus = write (zstream->fd, writeBuffer+written, writeLength);
+        }
 
       if ( lwritestatus <= 0 )
         {

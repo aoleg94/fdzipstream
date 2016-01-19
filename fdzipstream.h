@@ -64,7 +64,11 @@ typedef struct zipentry_s
 /* ZIP output stream managment */
 typedef struct zipstream_s
 {
-  int fd;
+  union {
+    int fd;
+    void* userdata;
+  };
+  ssize_t (*writer)(void* userdata, const void *buf, size_t count);
   int64_t WriteOffset;
   int64_t CentralDirectoryOffset;
   int32_t EntryCount;
@@ -97,6 +101,8 @@ extern  ZIPmethod * zs_registermethod ( ZIPstream *zs, int32_t methodID,
                                         );
 
 extern ZIPstream * zs_init ( int fd, ZIPstream *zs );
+
+extern ZIPstream * zs_init_custom_writer ( ssize_t (*writer)(void* userdata, const void *buf, size_t count), void* userdata, ZIPstream *zs );
 
 extern void zs_free ( ZIPstream *zs );
 
